@@ -1,15 +1,1 @@
-beautifulsoup4==4.11.1
-bs4==0.0.1
-certifi==2022.6.15
-charset-normalizer==2.0.12
-click==8.0.4
-futures==2.2.0
-goslate==1.5.4
-idna==3.3
-importlib-metadata==4.8.3
-PyDictionary==2.0.1
-requests==2.27.1
-soupsieve==2.3.2.post1
-typing_extensions==4.1.1
-urllib3==1.26.11
-zipp==3.6.0
+click==8.1.3
