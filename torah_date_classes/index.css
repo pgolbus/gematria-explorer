@@ -11,6 +11,6 @@
 #day {
     float: right;
     position: relative;
-    height: 500em;
+    height: 40em;
     overflow-y: auto;
 }

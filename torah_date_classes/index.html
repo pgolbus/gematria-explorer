@@ -5,7 +5,8 @@
 <link rel="stylesheet" href="index.css" />
 <script type="module">
     import { populateDay } from "./src/getDefinitions.js";
-    window.populateDay = populateDay;</script>;
+    window.populateDay = populateDay;
+</script>
 </head>
 <body onload="populateDay();">
 
@@ -14,9 +15,9 @@
 
     <div id="select">
         Hidden
-        <input type="checkbox", name="hidden", value="hidden" />
+        <input type="checkbox", id="hidden" onchange="populateDay();"/>
         <select name="days", id="days" onchange="populateDay();">
-            <option value="0">Day 1: Day and Night</option>
+            <option value="0">Day 1: The Light, Day; The Darkness, Night</option>
             <option value="1">Day 2: The Heavens</option>
             <option value="2">Day 3: The Earth and the Sea; Vegetation</option>
             <option value="3">Day 4: The Sun and the Moon</option>
@@ -38,9 +39,8 @@
 
     <br />
 
-    <div id="day">
-        foo
-    </div>
+    <div id="def">Definition go here</div>
+    <div id="day"></div>
 
 </body>
 </html>
