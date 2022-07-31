@@ -62,6 +62,7 @@ def main(mod: int, vocab_size: int, vocab_input_file: str, output_path: str, see
         class_values: Tuple[int, int] = get_equivalence_classes(word, mod)
         face_value:int = class_values[0]
         hidden_value:int = class_values[1]
+        word = word.capitalize()
         vocab[word]: Dict[str, int] = {}
         vocab[word]['face']: int = face_value
         vocab[word]['hidden']: int = hidden_value

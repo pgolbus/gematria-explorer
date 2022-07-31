@@ -1,0 +1,16 @@
+#select {
+    float: right;
+    position: relative;
+}
+
+#alefbet {
+    float: right;
+    position: relative;
+}
+
+#day {
+    float: right;
+    position: relative;
+    height: 500em;
+    overflow-y: auto;
+}

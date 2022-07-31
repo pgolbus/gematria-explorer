@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Words by Day of Creation</title>
+<link rel="stylesheet" href="index.css" />
+<script type="module">
+    import { populateDay } from "./src/getDefinitions.js";
+    window.populateDay = populateDay;</script>;
+</head>
+<body onload="populateDay();">
+
+    <h1>Center for Computational and Mathematical Jewish Studies</h1>
+    <h1>Words by Day of Creation</h1>
+
+    <div id="select">
+        Hidden
+        <input type="checkbox", name="hidden", value="hidden" />
+        <select name="days", id="days" onchange="populateDay();">
+            <option value="0">Day 1: Day and Night</option>
+            <option value="1">Day 2: The Heavens</option>
+            <option value="2">Day 3: The Earth and the Sea; Vegetation</option>
+            <option value="3">Day 4: The Sun and the Moon</option>
+            <option value="4">Day 5: The Creatures that Fly and the Creatures that Swim</option>
+            <option value="5">Day 6: The Creatures that Walk the Earth; Man</option>
+            <option value="6">Shabbat</option>
+        </select>
+    </div>
+
+    <br />
+
+    <br />
+
+    <div id="alefbet">
+        alefbet
+    </div>
+
+    <br />
+
+    <br />
+
+    <div id="day">
+        foo
+    </div>
+
+</body>
+</html>
