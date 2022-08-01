@@ -1,11 +1,7 @@
-#select {
-    float: right;
-    position: relative;
-}
-
 #alefbet {
     float: right;
     position: relative;
+    font-size: 20px;
 }
 
 #day {
@@ -13,4 +9,26 @@
     position: relative;
     height: 40em;
     overflow-y: auto;
+    font-size: 20px;
 }
+
+#def {
+    font-size: 20px;
+}
+
+#intro {
+    font-size: 20px;
+}
+
+#search {
+    float: right;
+    position: relative;
+    font-size: 20px;
+}
+
+#select {
+    float: right;
+    position: relative;
+    font-size: 20px;
+}
+
