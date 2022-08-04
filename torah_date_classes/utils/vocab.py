@@ -9,10 +9,12 @@ import click
 ASCII_OFFSET: int = ord('a') - 1
 
 
-def get_equivalence_classes(word: str, mod: int) -> Tuple[int, int]:
-    face_value = get_numeric_value(word) % mod
-    hidden_value = get_numeric_value(word, hidden=True) % mod
-    return face_value, hidden_value
+def get_equivalence_classes(word: str, mod: int) -> Tuple[int, int, int, int]:
+    face_value = get_numeric_value(word)
+    face_mod  = face_value % mod
+    hidden_value = get_numeric_value(word, hidden=True)
+    hidden_mod = hidden_value % mod
+    return face_value, face_mod, hidden_value, hidden_mod
 
 def get_numeric_value(word: str, hidden: bool = False) -> int:
     # get_numeric_value('abc') = 6
@@ -55,27 +57,43 @@ def main(mod: int, vocab_size: int, vocab_input_file: str, output_path: str, see
 
     vocab_list: List[str] = get_vocab(vocab_size, vocab_input_file)
     vocab: Dict[str, Dict[str, int]] = {}
-    face: Dict[int, List[str]] = {}
-    hidden: Dict[int, List[str]] = {}
+    face: Dict[str, Dict[int, List[str]]] = {}
+    hidden: Dict[str, Dict[int, List[str]]] = {}
 
     for word in vocab_list:
-        class_values: Tuple[int, int] = get_equivalence_classes(word, mod)
-        face_value:int = class_values[0]
-        hidden_value:int = class_values[1]
+        values: Tuple[int, int, int, int] = get_equivalence_classes(word, mod)
+        face_value: int = values[0]
+        face_mod: int = values[1]
+        hidden_value: int = values[2]
+        hidden_mod: int = values[3]
         word = word.capitalize()
         vocab[word]: Dict[str, int] = {}
-        vocab[word]['face']: int = face_value
-        vocab[word]['hidden']: int = hidden_value
-        if not face_value in face:
-            face[face_value]: List[str] = []
-        face[face_value].append(word)
-        if not hidden_value in hidden:
-            hidden[hidden_value]: List[str] = []
-        hidden[hidden_value].append(word)
+        vocab[word]['face_value']: int = face_value
+        vocab[word]['face_mod']: int = face_mod
+        vocab[word]['hidden_value']: int = hidden_value
+        vocab[word]['hidden_mod']: int = hidden_mod
+        letter = word[0]
+        if not letter in face:
+            face[letter]: Dict[str, Dict[int, List[str]]] = {}
+        if not face_mod in face[letter]:
+            face[letter][face_mod]: List[str] = []
+        face[letter][face_mod].append(word)
+        if not letter in hidden:
+            hidden[letter]: Dict[str, Dict[int, List[str]]] = {}
+        if not hidden_mod in hidden[letter]:
+            hidden[letter][hidden_mod]: List[str] = []
+        hidden[letter][hidden_mod].append(word)
 
-    for mod in face.keys():
-        face[mod].sort()
-        hidden[mod].sort()
+    for letter in face.keys():
+        for mod in face[letter].keys():
+            try:
+                face[letter][mod].sort()
+            except KeyError:
+                pass
+            try:
+                hidden[letter][mod].sort()
+            except KeyError:
+                pass
 
     write_json('vocab', vocab, output_path)
     write_json('face', face, output_path)

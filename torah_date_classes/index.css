@@ -1,34 +1,66 @@
-#alefbet {
-    float: right;
-    position: relative;
+* {
     font-size: 20px;
 }
 
-#day {
-    float: right;
-    position: relative;
-    height: 40em;
-    overflow-y: auto;
-    font-size: 20px;
+.word {
+    cursor: pointer;
 }
 
-#def {
-    font-size: 20px;
+.letter {
+    cursor: pointer;
+    padding-left: .25em;
+    padding-right: .25em;
+}
+
+#container {
+    display: grid;
+    grid-template-columns: 85% 15%;
+    grid-template-rows: 5em, 5em, 1em, 1em, 2em, 40em;
+    grid-auto-flow: row;
+    grid-template-areas:
+        "title title"
+        "intro intro"
+        "search search"
+        "select select"
+        "alefbet alefbet"
+        "definitions day";
+}
+
+#title {
+    grid-area: title;
+    font-size: 40px;
+    font-weight: bold;
 }
 
 #intro {
-    font-size: 20px;
+    grid-area: intro;
 }
 
 #search {
-    float: right;
-    position: relative;
-    font-size: 20px;
+    grid-area: search;
+    text-align: right;
 }
 
 #select {
-    float: right;
-    position: relative;
-    font-size: 20px;
+    grid-area: select;
+    text-align: right;
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;
 }
 
+#alefbet {
+    grid-area: alefbet;
+    text-align: right;
+    padding-bottom: 1em;
+}
+
+#definitions {
+    grid-area: definitions;
+}
+
+#day {
+    padding-top: .5em;
+    grid-area: day;
+    height: 40em;
+    overflow-y: auto;
+}
