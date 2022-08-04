@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Words by Day of Creation</title>
+<link rel="stylesheet" href="index.css" />
+<script type="module">
+    import {
+        initialize,
+        initializeSearch,
+        populateDay,
+        search,
+        searchHelper
+    } from "./src/getDefinitions.js";
+    window.initialize = initialize;
+    window.initializeSearch = initializeSearch;
+    window.populateDay = populateDay;
+    window.search = search;
+    window.searchHelper = searchHelper;
+</script>
+</head>
+<body onload="initialize()">
+
+<div id="container">
+
+    <div id="title">
+        Center for Computational and Mathematical Jewish Studies
+        <br />
+        Words by Day of Creation
+    </div>
+
+    <div id="intro">
+        <p>
+            All numbers are either odd or even, either it divides neatly by two or it has one left over. You can do the same thing with respect to three, it divides neatly, has one left over, or has two left over. Just like dividing by two split every number into two groups, odd and even, dividing by three splits every number into three groups, or <em>equivalence classes</em>, [[0]], [[1]], and [[2]]. In fact, you can do this with any number, which we call Z / nZ, pronounced "z mod n z." Since all Hebrew words have a numerical value, we can also define Hebrew / nHebrew.
+        </p>
+
+        <p>
+            There is nothing particularly significant about whether a number is odd or even, or whether it lands in [[0]], [[1]], &hellip;, [[n-1]]. This is not, however, necessarily the case for words.
+        </p>
+        <p>
+            Let n = 7, the number of days in the week. Then the equivalence classes of Hebrew / nHebrew correspond to the Days of Creation. Using the tool below, you can explore the words in each day, including [[Shabbat]].
+        </p>
+    </div>
+
+    <div id="search">
+        Hidden
+        <input type="checkbox", id="hiddenSearch"/>
+        <input type="button" id="searchButton" value="Search" onclick="search()" />
+        <input type="text" id="searchTerm" />
+    </div>
+
+    <div id="select">
+        Hidden
+        <input type="checkbox", id="hiddenSelect" onchange="populateDay(); initializeSearch();"/>
+        <select name="days", id="days" onchange="populateDay(); initializeSearch();">
+            <option value="0" id="day0">Day 1: The Light, Day; The Darkness, Night</option>
+            <option value="1" id="day1">Day 2: The Heavens</option>
+            <option value="2" id="day2">Day 3: The Earth and the Sea; Vegetation</option>
+            <option value="3" id="day3">Day 4: The Sun and the Moon</option>
+            <option value="4" id="day4">Day 5: The Creatures that Fly; The Creatures that Swim</option>
+            <option value="5" id="day5">Day 6: The Creatures that Walk the Earth; Man</option>
+            <option value="6" id="day6">Shabbat</option>
+        </select>
+    </div>
+
+    <div id="alefbet">
+
+    </div>
+
+    <div id="definitions"></div>
+    <div id="day"></div>
+
+</div>
+
+</body>
+</html>

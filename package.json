@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "google-dictionary-api": "^1.0.8"
+  }
+}
