@@ -1,49 +1,37 @@
 import json
 from pathlib import Path
+import random
 from typing import Any, Dict, List, Tuple
 
 import click
 
 
-UTF_OFFSET: int = ord(chr(int("0x05D0", 0))) + 1
+ASCII_OFFSET: int = ord('a') - 1
 
 
-def get_equivalence_classes(input_word: str, mod: int) -> Tuple[int, int, int, int]:
-    word = strip_vowels(input_word)
+def get_equivalence_classes(word: str, mod: int) -> Tuple[int, int, int, int]:
     face_value = get_numeric_value(word)
     face_mod  = face_value % mod
     hidden_value = get_numeric_value(word, hidden=True)
     hidden_mod = hidden_value % mod
     return face_value, face_mod, hidden_value, hidden_mod
 
-def get_numeric_value(raw_word: str, hidden: bool = False) -> int:
-    # get_numeric_value('אב') = 3
-    # get_numeric_value('אב', hidden=True) = 21
+def get_numeric_value(word: str, hidden: bool = False) -> int:
+    # get_numeric_value('abc') = 6
+    # get_numeric_value('abc', hidden=True) = 321
     def ord_offset(char: str) -> int:
-        return ord(char) - UTF_OFFSET
+        return ord(char) - ASCII_OFFSET
 
-    word = strip_vowels(raw_word)
     if hidden:
         return sum([10**i * ord_offset(char) for i, char in enumerate(word)])
     return sum([ord_offset(char) for char in word])
 
-def strip_vowels(word: str) -> str:
-    # for loops for legibility
-    output_word: List[str] = []
-    for char in word:
-        utf: int = ord(char)
-        if utf >= UTF_OFFSET - 1:
-            output_word.append(char)
-    return ''.join(output_word)
-
-def get_vocab(vocab_input_file: str) -> Dict[str, str]:
-    vocab: Dict[str, str] = {}
+def get_vocab(vocab_size: int, vocab_input_file: str) -> List[str]:
     with open(vocab_input_file, 'r') as fh:
-        input_dict = json.load(fh)
-    for strongs, metadata in input_dict.items():
-        word = metadata['lemma']
-        vocab[word] = strongs[1:]
-    return vocab
+        full_vocab_list: List[str] = [word.strip() for word in fh.readlines()]
+    vocab_list = random.sample(full_vocab_list, vocab_size)
+    vocab_list.sort()
+    return vocab_list
 
 def write_json(name: str, value: Dict[Any, Any], output_path: str) -> None:
     path = Path(output_path, f'{name}.json')
@@ -59,24 +47,27 @@ def write_json(name: str, value: Dict[Any, Any], output_path: str) -> None:
     )
 @click.option('--vocab_input_file',
     type=str,
-    default='../data/strongs-hebrew-dictionary.json',
+    default='data/corncob_lowercase.txt',
     help=('Path to a file containing a list of (lowercase) words')
     )
-@click.option('--output_path', type=str, default='../data', help='Path to output json blobs')
-def main(mod: int, vocab_size: int, vocab_input_file: str, output_path: str) -> None:
-    vocab_input: Dict[str, str] = get_vocab(vocab_input_file)
+@click.option('--output_path', type=str, default='data', help='Path to output json blobs')
+@click.option('--seed', type=int, default=42, help='Random seed value')
+def main(mod: int, vocab_size: int, vocab_input_file: str, output_path: str, seed:int) -> None:
+    random.seed(seed)
+
+    vocab_list: List[str] = get_vocab(vocab_size, vocab_input_file)
     vocab: Dict[str, Dict[str, int]] = {}
     face: Dict[str, Dict[int, List[str]]] = {}
     hidden: Dict[str, Dict[int, List[str]]] = {}
 
-    for word, strongs in vocab_input.items():
+    for word in vocab_list:
         values: Tuple[int, int, int, int] = get_equivalence_classes(word, mod)
         face_value: int = values[0]
         face_mod: int = values[1]
         hidden_value: int = values[2]
         hidden_mod: int = values[3]
-        vocab[word]: Dict[str, Any] = {}
-        vocab[word]['strongs']: str = strongs
+        word = word.capitalize()
+        vocab[word]: Dict[str, int] = {}
         vocab[word]['face_value']: int = face_value
         vocab[word]['face_mod']: int = face_mod
         vocab[word]['hidden_value']: int = hidden_value
