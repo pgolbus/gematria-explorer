@@ -133,7 +133,7 @@ function populateDayFromSearch(searchTerm) {
         dayDiv.innerHTML = words.join("<br />");
         daySelect.value = day;
     } catch {
-        window.alert("That word is not in Strong's");
+        window.alert("Sorry, I'm broken.");
     };
 };
 
