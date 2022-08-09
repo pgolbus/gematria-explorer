@@ -1,49 +1,127 @@
+from dataclasses import dataclass
+from distutils.dep_util import newer_pairwise
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 import click
 
 
-UTF_OFFSET: int = ord(chr(int("0x05D0", 0))) + 1
+# The UTF value for א (plus one) that we will be indexing characters off of
+UTF_OFFSET: int = int("0x05D0", 0) + 1
 
 
-def get_equivalence_classes(input_word: str, mod: int) -> Tuple[int, int, int, int]:
-    word = strip_vowels(input_word)
-    face_value = get_numeric_value(word)
-    face_mod  = face_value % mod
-    hidden_value = get_numeric_value(word, hidden=True)
-    hidden_mod = hidden_value % mod
-    return face_value, face_mod, hidden_value, hidden_mod
+# I'm calling the form w/out vowels a word and the form w/ vowels a "diacritic"
+# One word has 1 or more diacrtitics associated with it
+@dataclass
+class Diacritic:
+    spelling: str
+    strongs: int
 
-def get_numeric_value(raw_word: str, hidden: bool = False) -> int:
-    # get_numeric_value('אב') = 3
-    # get_numeric_value('אב', hidden=True) = 21
+@dataclass
+class WordNumbers:
+    face_value: int
+    face_mod: int
+    hidden_value: int
+    hidden_mod: int
+
+@dataclass
+class Word:
+    word_numbers: WordNumbers
+    diacritics: List[Diacritic]
+
+
+
+def get_word_numbers(word: str, mod: int) -> WordNumbers:
+    """Take a word and get it's numeric values and equivalence classes mod a given number
+
+    Args:
+        word (str): The word to convert
+        mod  (int): The base used for equivalence classes
+
+    Returns:
+        (WordNumbers) The numeric values and equivalence classes of that word for that base
+    """
+    face_value: int = get_numeric_value(word)
+    face_mod: int  = face_value % mod
+    hidden_value: int = get_numeric_value(word, hidden=True)
+    hidden_mod:int = hidden_value % mod
+    return WordNumbers(face_value, face_mod, hidden_value, hidden_mod)
+
+def get_numeric_value(word: str, hidden: bool = False) -> int:
+    """Convert a word to its numeric value
+
+    Convert a word to its numeric value by adding up the numeric value of it's letters.
+    A word's "hidden" value is obtained by treating it as a number rather than a sum of digits.
+
+    Examples:
+        get_numeric_value('אב') = 3
+        get_numeric_value('אב', hidden=True) = 21
+
+    Args:
+        word    (str): The word to convert
+        hidden (bool): Whether to return the hidden number. Defaults to False
+
+    Returns:
+        (int) The (hidden) numeric value of the word
+    """
     def ord_offset(char: str) -> int:
         return ord(char) - UTF_OFFSET
 
-    word = strip_vowels(raw_word)
     if hidden:
         return sum([10**i * ord_offset(char) for i, char in enumerate(word)])
     return sum([ord_offset(char) for char in word])
 
 def strip_vowels(word: str) -> str:
-    # for loops for legibility
-    output_word: List[str] = []
-    for char in word:
-        utf: int = ord(char)
-        if utf >= UTF_OFFSET - 1:
-            output_word.append(char)
+    """Remove vowels from a word
+
+    args:
+        word (str): The word to strip
+
+    returns:
+        (str) the word w/out vowels
+    """
+    output_word: List[str] = [ord(char) for char in word if ord(char) >= UTF_OFFSET - 1]
     return ''.join(output_word)
 
-def get_vocab(vocab_input_file: str) -> Dict[str, str]:
-    vocab: Dict[str, str] = {}
+def get_diacritics(vocab_input_file: str) -> Dict[str, int]:
+    """Read the input file and spit out a list of words (w/ vowels) to their Strong's numbers
+
+    Args:
+        vocab_input_file (str): The path to the input file
+
+    Returns:
+        (Dict[str, int]) The map from words (w/ vowels) to their Strong's numbers
+    """
     with open(vocab_input_file, 'r') as fh:
-        input_dict = json.load(fh)
-    for strongs, metadata in input_dict.items():
-        word = metadata['lemma']
-        vocab[word] = strongs[1:]
-    return vocab
+        input_dict: Dict[str, Any] = json.load(fh)
+    diacritics: Dict[str, int] = {metadata['lemma']: strongs[1:] for strongs, metadata in input_dict.items()}
+    return diacritics
+
+def make_words(diacritics: Dict[str, int]) -> Dict[str, Word]:
+    """Turns the words (w/ vowels) to Strong's map and returns a map from words (w/out vowels) to Word objects
+
+    Args:
+        diacritics (Dict[str, int]): A map from words (w/ vowels) to Strong's
+
+    Returns:
+        (Dict[str, Word]) a map from words (w/out vowels) to Word objects
+    """
+    words: Dict[str, Word] = {}
+    for diacritic, strongs in diacritics.items():
+        word: str = strip_vowels(diacritic)
+        if word not in words:
+            word_numbers: WordNumbers = get_word_numbers(word)
+            words[word]: Word = Word(word_numbers, [Diacritic(diacritic, strongs)])
+        else:
+            old_word: Word = words[word]
+            word_numbers: WordNumbers = old_word.word_numbers
+            diacritics: List[Diacritic] = old_word.diacritics
+            diacritics.append(Diacritic(diacritic, strongs))
+            new_word: Word = Word(word_numbers, diacritics)
+            words[word]: Word = new_word
+    return words
+
 
 def write_json(name: str, value: Dict[Any, Any], output_path: str) -> None:
     path = Path(output_path, f'{name}.json')
@@ -52,22 +130,19 @@ def write_json(name: str, value: Dict[Any, Any], output_path: str) -> None:
 
 @click.command()
 @click.option('-m', '--mod', type=int, default=7, help='Words / mod Words. Defaults to |days of the week|')
-@click.option('--vocab_size',
-    type=int,
-    default=8679,
-    help=('Number of words to sample from a list of English words. Defaults to the number of unique words in the torah')
-    )
 @click.option('--vocab_input_file',
     type=str,
     default='../data/strongs-hebrew-dictionary.json',
     help=('Path to a file containing a list of (lowercase) words')
     )
 @click.option('--output_path', type=str, default='../data', help='Path to output json blobs')
-def main(mod: int, vocab_size: int, vocab_input_file: str, output_path: str) -> None:
-    vocab_input: Dict[str, str] = get_vocab(vocab_input_file)
-    vocab: Dict[str, Dict[str, int]] = {}
+def main(mod: int, vocab_input_file: str, output_path: str) -> None:
+
+    vocab: Dict[str, Word] = {}
     face: Dict[str, Dict[int, List[str]]] = {}
     hidden: Dict[str, Dict[int, List[str]]] = {}
+
+    diacritics: Dict[str, int] = get_diacritics(vocab_input_file)
 
     for word, strongs in vocab_input.items():
         values: Tuple[int, int, int, int] = get_equivalence_classes(word, mod)
