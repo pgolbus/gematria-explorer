@@ -81,10 +81,10 @@ def strip_vowels(word: str) -> str:
     returns:
         (str) the word w/out vowels
     """
-    output_word: List[str] = [ord(char) for char in word if ord(char) >= UTF_OFFSET - 1]
+    output_word: List[str] = [char for char in word if ord(char) >= UTF_OFFSET - 1]
     return ''.join(output_word)
 
-def get_diacritics(vocab_input_file: str) -> Dict[str, int]:
+def get_diacritics(vocab_input_file: str) -> Dict[int, str]:
     """Read the input file and spit out a list of words (w/ vowels) to their Strong's numbers
 
     Args:
@@ -95,14 +95,15 @@ def get_diacritics(vocab_input_file: str) -> Dict[str, int]:
     """
     with open(vocab_input_file, 'r') as fh:
         input_dict: Dict[str, Any] = json.load(fh)
-    diacritics: Dict[int, str] = {strongs[1:]: metadata['lemma'] for strongs, metadata in input_dict.items()}
+    diacritics: Dict[int, str] = {int(strongs[1:]): metadata['lemma'] for strongs, metadata in input_dict.items()}
     return diacritics
 
-def make_words(diacritics: Dict[int, str]) -> Dict[str, Word]:
+def make_words(diacritics: Dict[int, str], mod: int) -> Dict[str, Word]:
     """Turns the words (w/ vowels) to Strong's map and returns a map from words (w/out vowels) to Word objects
 
     Args:
         diacritics (Dict[str, int]): A map from words (w/ vowels) to Strong's
+        mod                   (int): The base for the equivalence classes
 
     Returns:
         (Dict[str, Word]) a map from words (w/out vowels) to Word objects
@@ -111,15 +112,15 @@ def make_words(diacritics: Dict[int, str]) -> Dict[str, Word]:
     for strongs, diacritic in diacritics.items():
         word: str = strip_vowels(diacritic)
         if word not in words:
-            word_numbers: WordNumbers = get_word_numbers(word)
-            words[word]: Word = Word(word_numbers, [Diacritic(strongs, diacritic)])
+            word_numbers: WordNumbers = get_word_numbers(word, mod)
+            words[word] = Word(word_numbers, [Diacritic(strongs, diacritic)])
         else:
             old_word: Word = words[word]
             word_numbers: WordNumbers = old_word.word_numbers
-            diacritics: List[Diacritic] = old_word.diacritics
-            diacritics.append(Diacritic(strongs, diacritic))
-            new_word: Word = Word(word_numbers, diacritics)
-            words[word]: Word = new_word
+            diacritics_list: List[Diacritic] = old_word.diacritics
+            diacritics_list.append(Diacritic(strongs, diacritic))
+            new_word: Word = Word(word_numbers, diacritics_list)
+            words[word] = new_word
     return words
 
 def write_json(name: str, value: Dict[Any, Any], output_path: str) -> None:
@@ -167,23 +168,23 @@ def main(mod: int, vocab_input_file: str, output_path: str) -> None:
     # get the "diacritics" and "words" from the strong's dictionary
     # We'll go from diacritic str -> word str dynamically on the javascript side
     diacritics: Dict[int, str] = get_diacritics(vocab_input_file)
-    words: Dict[str, Word] = make_words(diacritics)
+    words: Dict[str, Word] = make_words(diacritics, mod)
 
     face: Dict[str, Dict[int, List[Word]]] = {}
     hidden: Dict[str, Dict[int, List[Word]]] ={}
 
-    for word_str, word_object in words.items:
+    for word_str, word_object in words.items():
         letter: str = word_str[0]
         if letter not in face:
-            face[letter]: Dict[int, List[Word]] = {}
-            hidden[letter]: Dict[int, List[Word]] = {}
+            face[letter] = {}
+            hidden[letter] = {}
         face_mod: int = word_object.word_numbers.face_mod
         if face_mod not in face[letter]:
-            face[letter][face_mod]: List[Word] = []
+            face[letter][face_mod] = []
         face[letter][face_mod].append(word_object)
         hidden_mod: int = word_object.word_numbers.hidden_mod
         if hidden_mod not in hidden[letter]:
-            hidden[letter][hidden_mod]: List[Word] = []
+            hidden[letter][hidden_mod] = []
         hidden[letter][hidden_mod].append(word_object)
 
     for letter in face.keys():
