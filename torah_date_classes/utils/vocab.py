@@ -122,8 +122,14 @@ def make_words(diacritics: Dict[int, str]) -> Dict[str, Word]:
             words[word]: Word = new_word
     return words
 
-
 def write_json(name: str, value: Dict[Any, Any], output_path: str) -> None:
+    """Write dictionary to JSON blob, DESTRUCTIVELY!
+
+    args:
+        name             (str): file name, as in f'{name}.json
+        value (Dict[Any, Any]): the dictionary you are writing
+        output_path      (str): the path to the directory where we're writing the blobs
+    """
     path = Path(output_path, f'{name}.json')
     with open(path, 'w') as fh:
         json.dump(value, fh, indent=4, sort_keys=True)
@@ -137,18 +143,62 @@ def write_json(name: str, value: Dict[Any, Any], output_path: str) -> None:
     )
 @click.option('--output_path', type=str, default='../data', help='Path to output json blobs')
 def main(mod: int, vocab_input_file: str, output_path: str) -> None:
+    """Main function. Persists maps to disk, DESTRUCTIVELY!
 
+    Main function:
+        1) Read dictionary file
+        2) Create maps
+        3) Persist them
+
+    Maps:
+        strongs -> diacritic
+        word str -> Word object
+        face: letter -> day number -> [Word]
+        hidden: letter -> day number -> [Word]
+
+    Args:
+        mod              (int): The base number for equivalence classes
+        vocab_input_file (str): Path to input dictionary
+        output_path      (str): Path to output directory
+
+    Side-effects:
+        Persists maps to disk, DESTRUCTIVELY!
+    """
     # get the "diacritics" and "words" from the strong's dictionary
     # We'll go from diacritic str -> word str dynamically on the javascript side
-    diacritics: Dict[str, int] = get_diacritics(vocab_input_file)
+    diacritics: Dict[int, str] = get_diacritics(vocab_input_file)
     words: Dict[str, Word] = make_words(diacritics)
 
-    # Maps:
-    #   strongs -> diacritic
-    #   word str -> Word object
-    #   face: letter -> day number -> [Word]
-    #   hidden: letter -> day number -> [Word]
-    strongs: Dict[int, str] = {stongs: diacritic for }
+    face: Dict[str, Dict[int, List[Word]]] = {}
+    hidden: Dict[str, Dict[int, List[Word]]] ={}
+
+    for word_str, word_object in words.items:
+        letter: str = word_str[0]
+        if letter not in face:
+            face[letter]: Dict[int, List[Word]] = {}
+            hidden[letter]: Dict[int, List[Word]] = {}
+        face_mod: int = word_object.word_numbers.face_mod
+        if face_mod not in face[letter]:
+            face[letter][face_mod]: List[Word] = []
+        face[letter][face_mod].append(word_object)
+        hidden_mod: int = word_object.word_numbers.hidden_mod
+        if hidden_mod not in hidden[letter]:
+            hidden[letter][hidden_mod]: List[Word] = []
+        hidden[letter][hidden_mod].append(word_object)
+
+    for letter in face.keys():
+        for day in face[letter].keys():
+            face[letter][day].sort()
+
+    for letter in hidden.keys():
+        for day in hidden[letter].keys():
+            hidden[letter][day].sort()
+
+    write_json('diacritics', diacritics, output_path)
+    write_json('words', words, output_path)
+    write_json('face', face, output_path)
+    write_json('hidden', hidden, output_path)
+
 
 if __name__ == '__main__':
     main()
