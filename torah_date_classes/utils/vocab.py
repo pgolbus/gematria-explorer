@@ -15,8 +15,8 @@ UTF_OFFSET: int = int("0x05D0", 0) + 1
 # One word has 1 or more diacrtitics associated with it
 @dataclass
 class Diacritic:
-    spelling: str
     strongs: int
+    diacritic: str
 
 @dataclass
 class WordNumbers:
@@ -95,10 +95,10 @@ def get_diacritics(vocab_input_file: str) -> Dict[str, int]:
     """
     with open(vocab_input_file, 'r') as fh:
         input_dict: Dict[str, Any] = json.load(fh)
-    diacritics: Dict[str, int] = {metadata['lemma']: strongs[1:] for strongs, metadata in input_dict.items()}
+    diacritics: Dict[int, str] = {strongs[1:]: metadata['lemma'] for strongs, metadata in input_dict.items()}
     return diacritics
 
-def make_words(diacritics: Dict[str, int]) -> Dict[str, Word]:
+def make_words(diacritics: Dict[int, str]) -> Dict[str, Word]:
     """Turns the words (w/ vowels) to Strong's map and returns a map from words (w/out vowels) to Word objects
 
     Args:
@@ -108,16 +108,16 @@ def make_words(diacritics: Dict[str, int]) -> Dict[str, Word]:
         (Dict[str, Word]) a map from words (w/out vowels) to Word objects
     """
     words: Dict[str, Word] = {}
-    for diacritic, strongs in diacritics.items():
+    for strongs, diacritic in diacritics.items():
         word: str = strip_vowels(diacritic)
         if word not in words:
             word_numbers: WordNumbers = get_word_numbers(word)
-            words[word]: Word = Word(word_numbers, [Diacritic(diacritic, strongs)])
+            words[word]: Word = Word(word_numbers, [Diacritic(strongs, diacritic)])
         else:
             old_word: Word = words[word]
             word_numbers: WordNumbers = old_word.word_numbers
             diacritics: List[Diacritic] = old_word.diacritics
-            diacritics.append(Diacritic(diacritic, strongs))
+            diacritics.append(Diacritic(strongs, diacritic))
             new_word: Word = Word(word_numbers, diacritics)
             words[word]: Word = new_word
     return words
@@ -138,24 +138,17 @@ def write_json(name: str, value: Dict[Any, Any], output_path: str) -> None:
 @click.option('--output_path', type=str, default='../data', help='Path to output json blobs')
 def main(mod: int, vocab_input_file: str, output_path: str) -> None:
 
+    # get the "diacritics" and "words" from the strong's dictionary
+    # We'll go from diacritic str -> word str dynamically on the javascript side
     diacritics: Dict[str, int] = get_diacritics(vocab_input_file)
     words: Dict[str, Word] = make_words(diacritics)
 
-    for letter in face.keys():
-        for mod in face[letter].keys():
-            try:
-                face[letter][mod].sort()
-            except KeyError:
-                pass
-            try:
-                hidden[letter][mod].sort()
-            except KeyError:
-                pass
-
-    write_json('vocab', vocab, output_path)
-    write_json('face', face, output_path)
-    write_json('hidden', hidden, output_path)
-
+    # Maps:
+    #   strongs -> diacritic
+    #   word str -> Word object
+    #   face: letter -> day number -> [Word]
+    #   hidden: letter -> day number -> [Word]
+    strongs: Dict[int, str] = {stongs: diacritic for }
 
 if __name__ == '__main__':
     main()
