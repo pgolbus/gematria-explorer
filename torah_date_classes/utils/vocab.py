@@ -133,40 +133,13 @@ def write_json(name: str, value: Dict[Any, Any], output_path: str) -> None:
 @click.option('--vocab_input_file',
     type=str,
     default='../data/strongs-hebrew-dictionary.json',
-    help=('Path to a file containing a list of (lowercase) words')
+    help=('Path to my Strong\'s JSON file')
     )
 @click.option('--output_path', type=str, default='../data', help='Path to output json blobs')
 def main(mod: int, vocab_input_file: str, output_path: str) -> None:
 
-    vocab: Dict[str, Word] = {}
-    face: Dict[str, Dict[int, List[str]]] = {}
-    hidden: Dict[str, Dict[int, List[str]]] = {}
-
     diacritics: Dict[str, int] = get_diacritics(vocab_input_file)
-
-    for word, strongs in vocab_input.items():
-        values: Tuple[int, int, int, int] = get_equivalence_classes(word, mod)
-        face_value: int = values[0]
-        face_mod: int = values[1]
-        hidden_value: int = values[2]
-        hidden_mod: int = values[3]
-        vocab[word]: Dict[str, Any] = {}
-        vocab[word]['strongs']: str = strongs
-        vocab[word]['face_value']: int = face_value
-        vocab[word]['face_mod']: int = face_mod
-        vocab[word]['hidden_value']: int = hidden_value
-        vocab[word]['hidden_mod']: int = hidden_mod
-        letter = word[0]
-        if not letter in face:
-            face[letter]: Dict[str, Dict[int, List[str]]] = {}
-        if not face_mod in face[letter]:
-            face[letter][face_mod]: List[str] = []
-        face[letter][face_mod].append(word)
-        if not letter in hidden:
-            hidden[letter]: Dict[str, Dict[int, List[str]]] = {}
-        if not hidden_mod in hidden[letter]:
-            hidden[letter][hidden_mod]: List[str] = []
-        hidden[letter][hidden_mod].append(word)
+    words: Dict[str, Word] = make_words(diacritics)
 
     for letter in face.keys():
         for mod in face[letter].keys():
