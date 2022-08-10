@@ -1,14 +1,14 @@
 from dataclasses import dataclass
-from distutils.dep_util import newer_pairwise
 import json
 from pathlib import Path
 from typing import Any, Dict, List
 
 import click
 
+from __init__ import EnhancedJSONEncoder
 
-# The UTF value for א (plus one) that we will be indexing characters off of
-UTF_OFFSET: int = int("0x05D0", 0) + 1
+# The UTF value for א that we will be indexing characters off of
+ALEF: int = 1488
 
 
 # I'm calling the form w/out vowels a word and the form w/ vowels a "diacritic"
@@ -17,6 +17,9 @@ UTF_OFFSET: int = int("0x05D0", 0) + 1
 class Diacritic:
     strongs: int
     diacritic: str
+
+    def __lt__(self, obj):
+        return ((self.diacritic) < (obj.diacritic))
 
 @dataclass
 class WordNumbers:
@@ -27,9 +30,12 @@ class WordNumbers:
 
 @dataclass
 class Word:
+    word: str
     word_numbers: WordNumbers
     diacritics: List[Diacritic]
 
+    def __lt__(self, obj):
+        return ((self.word) < (obj.word))
 
 
 def get_word_numbers(word: str, mod: int) -> WordNumbers:
@@ -66,7 +72,7 @@ def get_numeric_value(word: str, hidden: bool = False) -> int:
         (int) The (hidden) numeric value of the word
     """
     def ord_offset(char: str) -> int:
-        return ord(char) - UTF_OFFSET
+        return ord(char) - ALEF + 1
 
     if hidden:
         return sum([10**i * ord_offset(char) for i, char in enumerate(word)])
@@ -81,7 +87,7 @@ def strip_vowels(word: str) -> str:
     returns:
         (str) the word w/out vowels
     """
-    output_word: List[str] = [char for char in word if ord(char) >= UTF_OFFSET - 1]
+    output_word: List[str] = [char for char in word if ord(char) >= ALEF]
     return ''.join(output_word)
 
 def get_diacritics(vocab_input_file: str) -> Dict[int, str]:
@@ -111,16 +117,19 @@ def make_words(diacritics: Dict[int, str], mod: int) -> Dict[str, Word]:
     words: Dict[str, Word] = {}
     for strongs, diacritic in diacritics.items():
         word: str = strip_vowels(diacritic)
+        word_numbers: WordNumbers
         if word not in words:
-            word_numbers: WordNumbers = get_word_numbers(word, mod)
-            words[word] = Word(word_numbers, [Diacritic(strongs, diacritic)])
+            word_numbers = get_word_numbers(word, mod)
+            words[word] = Word(word, word_numbers, [Diacritic(strongs, diacritic)])
         else:
             old_word: Word = words[word]
-            word_numbers: WordNumbers = old_word.word_numbers
+            word_numbers = old_word.word_numbers
             diacritics_list: List[Diacritic] = old_word.diacritics
             diacritics_list.append(Diacritic(strongs, diacritic))
-            new_word: Word = Word(word_numbers, diacritics_list)
+            new_word: Word = Word(word, word_numbers, diacritics_list)
             words[word] = new_word
+    for word in words:
+        words[word].diacritics.sort()
     return words
 
 def write_json(name: str, value: Dict[Any, Any], output_path: str) -> None:
@@ -133,16 +142,16 @@ def write_json(name: str, value: Dict[Any, Any], output_path: str) -> None:
     """
     path = Path(output_path, f'{name}.json')
     with open(path, 'w') as fh:
-        json.dump(value, fh, indent=4, sort_keys=True)
+        json.dump(value, fh, indent=4, sort_keys=True, cls=EnhancedJSONEncoder)
 
 @click.command()
 @click.option('-m', '--mod', type=int, default=7, help='Words / mod Words. Defaults to |days of the week|')
 @click.option('--vocab_input_file',
     type=str,
-    default='../data/strongs-hebrew-dictionary.json',
+    default='data/strongs-hebrew-dictionary.json',
     help=('Path to my Strong\'s JSON file')
     )
-@click.option('--output_path', type=str, default='../data', help='Path to output json blobs')
+@click.option('--output_path', type=str, default='data', help='Path to output json blobs')
 def main(mod: int, vocab_input_file: str, output_path: str) -> None:
     """Main function. Persists maps to disk, DESTRUCTIVELY!
 
