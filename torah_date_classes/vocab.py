@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 
 import click
 
-from __init__ import EnhancedJSONEncoder
+from utils import EnhancedJSONEncoder
 
 # The UTF value for א that we will be indexing characters off of
 ALEF: int = 1488
