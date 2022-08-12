@@ -15,7 +15,7 @@ ALEF: int = 1488
 # One word has 1 or more diacrtitics associated with it
 @dataclass
 class Diacritic:
-    strongs: str
+    strongs: int
     diacritic: str
 
     def __lt__(self, obj):
@@ -95,28 +95,28 @@ def strip_vowels(word: str) -> str:
     output_word: List[str] = [char for char in word if ord(char) >= ALEF]
     return ''.join(output_word)
 
-def get_diacritics(vocab_input_file: str) -> Dict[str, Strongs]:
-    """Read the input file and spit out a list of words (w/ vowels) to their Strong's numbers
+def get_diacritics(vocab_input_file: str) -> Dict[int, Strongs]:
+    """Read the input file and spit out a dict from strongs values to their word strings
 
     Args:
         vocab_input_file (str): The path to the input file
 
     Returns:
-        (Dict[str, int]) The map from words (w/ vowels) to their Strong's numbers
+        (Dict[int, Strongs]) The map from Strongs numbers to their word strings
     """
     with open(vocab_input_file, 'r') as fh:
         input_dict: Dict[str, Any] = json.load(fh)
-    diacritics: Dict[str, Strongs] = {strongs: Strongs(metadata['lemma'],
-                                                       strip_vowels(metadata['lemma']))
+    diacritics: Dict[int, Strongs] = {int(strongs[1:]): Strongs(metadata['lemma'],
+                                                                strip_vowels(metadata['lemma']))
                                       for strongs, metadata in input_dict.items()}
     return diacritics
 
-def make_words(diacritics: Dict[str, Strongs], mod: int) -> Dict[str, Word]:
+def make_words(diacritics: Dict[int, Strongs], mod: int) -> Dict[str, Word]:
     """Turns the words (w/ vowels) to Strong's map and returns a map from words (w/out vowels) to Word objects
 
     Args:
-        diacritics (Dict[str, int]): A map from words (w/ vowels) to Strong's
-        mod                   (int): The base for the equivalence classes
+        diacritics (Dict[int, Strongs]): A map Strongs numbers to word strings
+        mod                       (int): The base for the equivalence classes
 
     Returns:
         (Dict[str, Word]) a map from words (w/out vowels) to Word objects
@@ -183,7 +183,7 @@ def main(mod: int, vocab_input_file: str, output_path: str) -> None:
     """
     # get the "diacritics" and "words" from the strong's dictionary
     # We'll go from diacritic str -> word str dynamically on the javascript side
-    diacritics: Dict[str, Strongs] = get_diacritics(vocab_input_file)
+    diacritics: Dict[int, Strongs] = get_diacritics(vocab_input_file)
     words: Dict[str, Word] = make_words(diacritics, mod)
 
     face: Dict[str, Dict[int, List[Word]]] = {}

@@ -19,7 +19,7 @@ let currentLetter = "א";
  * @returns {string} the word with the vowels removed
  */
 function stripVowels(diacritic) {
-    return diacritic.split('').filter(char => char.charCodeAt(0) >= ALEF);
+    return diacritic.split('').filter(char => char.charCodeAt(0) >= ALEF).join('');
 };
 
 /**
@@ -27,8 +27,11 @@ function stripVowels(diacritic) {
  * @param {string} word The word to wrap
  * @returns {string} The word wrapped in the appropriate span
  */
-function wrapWord(word) {
-    return `<span class="word hebrew" onclick="searchHelper('${word}', fromClick=true);">${word}</span>`;
+function wrapWord(word, bold = true) {
+    if(bold === true) {
+        return `<span class="word" style="font-size: 25pt;" onclick="search('${word}', fromClick=true);">${word}</span>`;
+    };
+    return `<span class="word" onclick="search('${word}', fromClick=true);">${word}</span>`;
 };
 
 /**
@@ -46,39 +49,42 @@ export function populateDay(letter) {
     let words = {}
     try {
         if (document.getElementById("hiddenSelect").checked == true) {
-            words = hidden[currentLetter][day];
+            words = hidden[currentLetter][day].map(word => word.word);
         } else {
-            words = face[currentLetter][day];
+            words = face[currentLetter][day].map(word => word.word);
         }
-        searchHelper(words[0], true);
-        const wrappedWords = words.map(wrapWord)
+        search(words[0], true);
+        const wrappedWords = words.map(word => wrapWord(word));
         dayDiv.innerHTML = wrappedWords.join("<br />");
     } catch {
         dayDiv.innerHTML = "";
     };
 };
 
-export async function searchHelper(searchTerm, fromClick = false) {
-    if(fromClick === true) {
-        const searchText = document.getElementById("searchTerm");
-        searchText.value = "";
-        const searchBox = document.getElementById("hiddenSearch");
-        searchBox.checked = false;
+/**
+ * Replace all occurences of Strongs numbers w/ their diacritics (and make them clickable)
+ *
+ * @params{glossary} (string) The glossary from Strongs
+ */
+function replaceStrongs(glossary) {
+    const wordRegex = /(.*?\))/
+    const firstWord = glossary.match(wordRegex)[0];
+    let output = glossary;
+    output = output.replace(firstWord, `<strong>${firstWord[0].toUpperCase() + firstWord.substring(1)}</strong>`);
+    const strongsRegex = /(H\d+)/g;
+    const strongsArray = glossary.match(strongsRegex);
+    if (strongsArray !== null) {
+        strongsArray.shift();
+        strongsArray.forEach(strongs => {
+            const strongsNumber = strongs.replace("H", "");
+            output = output.replaceAll(strongs, wrapWord(diacritics[strongsNumber]["diacritic"], false));
+        });
     };
+    return output;
+};
 
-    const defDiv = document.getElementById("definitions");
-    const dayText = document.getElementById(`day${vocab[searchTerm]["face_mod"]}`).innerText;
-    const hiddenDayText = document.getElementById(`day${vocab[searchTerm]["hidden_mod"]}`).innerText;
-    const line = [];
-    line.push(`<span class="hebrew">${searchTerm}</span>`);
-    line.push(`Numeric Value: ${vocab[searchTerm]["face_value"].toLocaleString("en-US")}`);
-    line.push(`<span style="padding-left: 1em;">${dayText}</span>`);
-    line.push(`Hidden Value: ${vocab[searchTerm]["hidden_value"].toLocaleString("en-US")}`);
-    line.push(`<span style="padding-left: 1em;">${hiddenDayText}</span>`);
-
-    const p = line.join("<br />") + "<br /><br />";
-
-    const url = `https://iq-bible.p.rapidapi.com/GetStrongs?lexiconId=H&id=${vocab[searchTerm]["strongs"]}`;
+async function searchHelper(diacritic, defDiv) {
+    const url = `https://iq-bible.p.rapidapi.com/GetStrongs?lexiconId=H&id=${diacritic["strongs"]}`;
     const method = "GET";
     const headers = {
         'X-RapidAPI-Key': `${env["X-RapidAPI-Key"]}`,
@@ -91,49 +97,61 @@ export async function searchHelper(searchTerm, fromClick = false) {
 
 
     response.json().then(result => {
-
-        const entry = result[0];
         const output = new Array();
-
-        output.push(`${entry.glossary}<br />`);
-        output.push(`Occurences: ${entry.occurences}<br />`);
-
-        if(!(entry.root) === "") {
-            output.push(`Root: ${entry.root}`);
-        };
-        if(!(entry.root_occurences) === "") {
-            output.push(`Root Occurences: ${entry.root_occurence}`);
-        };
-
-        output.push("<br />");
-
-        if(!(entry.second_root_hebrew === "")) {
-            output.push(`Second Root: ${entry.second_root_hebrew}`);
-            if(!(entry.third_root_hebrew === "")) {
-                output.push(`Third Root: ${entry.third_root_hebrew}`);
-            }
-            output.push("<br />");
-        };
-
-        if(!(entry.passages === "")) {
-            output.push(entry.passages);
-        };
-
-        defDiv.innerHTML = p + output.join("<br />")
-
+        result.forEach(entry => {
+            output.push(`<p>${replaceStrongs(entry.glossary)}<br /><strong>Occurences:</strong>${entry.occurences}</p>`);
+        })
+        defDiv.innerHTML += output.join("");
     })
     .catch(error => {
 
         console.log(error);
-        defDiv.innerHTML = "<strong>Something went wrong.</strong>"
+        return "<strong>Something went wrong.</strong>"
 
+    })
+};
+
+/**
+ * Search for a word and populate results
+ *
+ * Side-effects
+ *   - Update definitions div
+ *   - Update current letter
+ *   - Update day div
+ * @params{searchWord} (Word) The word object we are searching for
+ * @params{fromClick} (bool) Indicates whether the term came from clicking rather than searching
+ */
+export async function search(searchWord, fromClick = false) {
+    if(fromClick === true) {
+        const searchText = document.getElementById("searchTerm");
+        searchText.value = "";
+        const searchBox = document.getElementById("hiddenSearch");
+        searchBox.checked = false;
+    };
+
+    const searchTerm = stripVowels(searchWord);
+    const defDiv = document.getElementById("definitions");
+    const dayText = document.getElementById(`day${words[searchTerm]["word_numbers"]["face_mod"]}`).innerText;
+    const hiddenDayText = document.getElementById(`day${words[searchTerm]["word_numbers"]["hidden_mod"]}`).innerText;
+    const line = [];
+    line.push(`<span style="font-size: 30px">${searchTerm}</span>`);
+    line.push(`Numeric Value: ${words[searchTerm]["word_numbers"]["face_value"].toLocaleString("en-US")}`);
+    line.push(`<span style="padding-left: 1em;">${dayText}</span>`);
+    line.push(`Hidden Value: ${words[searchTerm]["word_numbers"]["hidden_value"].toLocaleString("en-US")}`);
+    line.push(`<span style="padding-left: 1em;">${hiddenDayText}</span>`);
+
+    defDiv.innerHTML = line.join("<br />") + "<br /><br />";
+
+    const results = []
+    words[searchTerm]["diacritics"].forEach(diacritic => {
+        searchHelper(diacritic, defDiv)
     });
 };
 
-export async function search() {
+export async function searchBox() {
     const searchTerm = document.getElementById("searchTerm").value;
     populateDayFromSearch(searchTerm);
-    await searchHelper(searchTerm);
+    await search(searchTerm);
 };
 
 function populateDayFromSearch(searchTerm) {
@@ -144,12 +162,12 @@ function populateDayFromSearch(searchTerm) {
     currentLetter = searchTerm.at(0);
     try {
         if (document.getElementById("hiddenSearch").checked == true) {
-            const day = vocab[searchTerm]["hidden_mod"];
+            const day = words[searchTerm]["hidden_mod"];
             words = hidden[currentLetter][day].map(wrapWord);
             dayHidden.checked = true;
         }
         else {
-            const day = vocab[searchTerm]["face_mod"];
+            const day = words[searchTerm]["face_mod"];
             words = face[currentLetter][day].map(wrapWord);
             dayHidden.checked = false;
         }
@@ -182,7 +200,7 @@ export async function initialize() {
     }
     const wrappedAlefbet = alefbet.map(wrapLetter);
     alefbetDiv.innerHTML = wrappedAlefbet.join(" ");
-    await initializeSearch();
+    //await initializeSearch();
 };
 
 export async function initializeSearch() {
@@ -193,7 +211,7 @@ export async function initializeSearch() {
     const regex = /.*>(.*)</;
     try {
         const searchTerm = wrappedSearchTerm.match(regex)[1];
-        await searchHelper(searchTerm);
+        await search(searchTerm);
     }
     catch {
         const defDiv = document.getElementById("definitions");

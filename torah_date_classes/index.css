@@ -12,10 +12,6 @@
     padding-right: .25em;
 }
 
-.hebrew {
-    font-size: 30px;
-}
-
 #container {
     display: grid;
     grid-template-columns: 85% 15%;

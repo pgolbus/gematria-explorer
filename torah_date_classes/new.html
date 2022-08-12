@@ -9,13 +9,13 @@
         initializeSearch,
         populateDay,
         search,
-        searchHelper
-    } from "./src/getDefinitions.js";
+        searchBox
+    } from "./src/getDefinitionsNew.js";
     window.initialize = initialize;
     window.initializeSearch = initializeSearch;
     window.populateDay = populateDay;
     window.search = search;
-    window.searchHelper = searchHelper;
+    window.searchBox = searchBox;
 </script>
 </head>
 <body onload="initialize()">
@@ -45,7 +45,7 @@
     <div id="search">
         Hidden
         <input type="checkbox", id="hiddenSearch"/>
-        <input type="button" id="searchButton" value="Search" onclick="search()" />
+        <input type="button" id="searchButton" value="Search" onclick="searchBox()" />
         <input type="text" id="searchTerm" />
     </div>
 
