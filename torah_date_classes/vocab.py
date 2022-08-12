@@ -139,17 +139,18 @@ def make_words(diacritics: Dict[int, Strongs], mod: int) -> Dict[str, Word]:
         words[word].diacritics.sort()
     return words
 
-def write_json(name: str, value: Dict[Any, Any], output_path: str) -> None:
-    """Write dictionary to JSON blob, DESTRUCTIVELY!
+def write_js_var(name: str, value: Dict[Any, Any], output_path: str) -> None:
+    """Write dictionary to js variable containing a json blob, DESTRUCTIVELY!
 
     args:
         name             (str): file name, as in f'{name}.json
         value (Dict[Any, Any]): the dictionary you are writing
-        output_path      (str): the path to the directory where we're writing the blobs
+        output_path      (str): the path to the directory where we're writing the variables
     """
-    path = Path(output_path, f'{name}.json')
+    path = Path(output_path, f'{name}.js')
+    blob = json.dumps(value, cls=EnhancedJSONEncoder)
     with open(path, 'w') as fh:
-        json.dump(value, fh, indent=4, sort_keys=True, cls=EnhancedJSONEncoder)
+        fh.write(f'export const {name} = {blob}')
 
 @click.command()
 @click.option('-m', '--mod', type=int, default=7, help='Words / mod Words. Defaults to |days of the week|')
@@ -211,10 +212,10 @@ def main(mod: int, vocab_input_file: str, output_path: str) -> None:
         for day in hidden[letter].keys():
             hidden[letter][day].sort()
 
-    write_json('diacritics', diacritics, output_path)
-    write_json('words', words, output_path)
-    write_json('face', face, output_path)
-    write_json('hidden', hidden, output_path)
+    write_js_var('diacritics', diacritics, output_path)
+    write_js_var('words', words, output_path)
+    write_js_var('face', face, output_path)
+    write_js_var('hidden', hidden, output_path)
 
 
 if __name__ == '__main__':

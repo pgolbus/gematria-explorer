@@ -1,13 +1,13 @@
-import env from "../env.json" assert {type: 'json'};
-import face from "../data/face.json" assert {type: 'json'};
-import hidden from "../data/hidden.json" assert {type: 'json'};
-import words from "../data/words.json" assert {type: 'json'};
-import diacritics from "../data/diacritics.json" assert {type: 'json'};
+import { env } from "../env.js";
+import { face } from "../data/face.js";
+import { hidden } from "../data/hidden.js";
+import { words } from "../data/words.js";
+import { diacritics } from "../data/diacritics.js";
 
 
 const SOFITS = ["ך", "ם", "ן", "ף", "ץ"];
 const ALEF = "א".charCodeAt(0); // which happens to be 1488
-
+let LOOKUP = true;
 
 // We are keeping track of the current letter at the module level. Meh.
 let currentLetter = "א";
@@ -81,31 +81,33 @@ function replaceStrongs(glossary) {
 };
 
 async function searchHelper(diacritic, defDiv) {
-    const url = `https://iq-bible.p.rapidapi.com/GetStrongs?lexiconId=H&id=${diacritic["strongs"]}`;
-    const method = "GET";
-    const headers = {
-        'X-RapidAPI-Key': `${env["X-RapidAPI-Key"]}`,
-        'X-RapidAPI-Host': `${env["X-RapidAPI-Host"]}`
-    };
-    const response = await fetch(url, {
-        method: method,
-        headers: headers
-    });
+    if (LOOKUP === true) {
+        const url = `https://iq-bible.p.rapidapi.com/GetStrongs?lexiconId=H&id=${diacritic["strongs"]}`;
+        const method = "GET";
+        const headers = {
+            'X-RapidAPI-Key': `${env["X-RapidAPI-Key"]}`,
+            'X-RapidAPI-Host': `${env["X-RapidAPI-Host"]}`
+        };
+        const response = await fetch(url, {
+            method: method,
+            headers: headers
+        });
 
 
-    response.json().then(result => {
-        const output = new Array();
-        result.forEach(entry => {
-            output.push(`<p><span style="font-size: 30px;">${diacritic["diacritic"]}:</span> ${replaceStrongs(entry.glossary)}<br /><strong>Occurences:</strong>${entry.occurences}</p>`);
+        response.json().then(result => {
+            const output = new Array();
+            result.forEach(entry => {
+                output.push(`<p><span style="font-size: 30px;">${diacritic["diacritic"]}:</span> ${replaceStrongs(entry.glossary)}<br /><strong>Occurences:</strong>${entry.occurences}</p>`);
+            })
+            defDiv.innerHTML += output.join("");
         })
-        defDiv.innerHTML += output.join("");
-    })
-    .catch(error => {
+        .catch(error => {
 
-        console.log(error);
-        return "<strong>Something went wrong.</strong>"
+            console.log(error);
+            return "<strong>Something went wrong.</strong>"
 
-    })
+        })
+    };
 };
 
 /**
@@ -179,7 +181,11 @@ function wrapLetter(letter) {
     return `<span class="letter hebrew" onclick="populateDay('${letter}');">${letter}</span>`;
 };
 
-export async function initialize() {
+export async function initialize(url) {
+    const lookup = new URL(url).searchParams.get("lookup");
+    if(lookup !== null) {
+        LOOKUP = lookup;
+    };
     populateDay(currentLetter);
     const searchTerm = document.getElementById("searchTerm");
     searchTerm.addEventListener("keyup", e => {
