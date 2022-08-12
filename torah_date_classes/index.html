@@ -6,16 +6,16 @@
 <script type="module">
     import {
         initialize,
-        initializeSearch,
+        clearSearch,
         populateDay,
         search,
-        searchHelper
+        searchBox
     } from "./src/getDefinitions.js";
     window.initialize = initialize;
-    window.initializeSearch = initializeSearch;
+    window.clearSearch = clearSearch;
     window.populateDay = populateDay;
     window.search = search;
-    window.searchHelper = searchHelper;
+    window.searchBox = searchBox;
 </script>
 </head>
 <body onload="initialize()">
@@ -45,14 +45,14 @@
     <div id="search">
         Hidden
         <input type="checkbox", id="hiddenSearch"/>
-        <input type="button" id="searchButton" value="Search" onclick="search()" />
+        <input type="button" id="searchButton" value="Search" onclick="searchBox()" />
         <input type="text" id="searchTerm" />
     </div>
 
     <div id="select">
         Hidden
-        <input type="checkbox", id="hiddenSelect" onchange="populateDay(); initializeSearch();"/>
-        <select name="days", id="days" onchange="populateDay(); initializeSearch();">
+        <input type="checkbox", id="hiddenSelect" onchange="populateDay(); clearSearch();"/>
+        <select name="days", id="days" onchange="populateDay();">
             <option value="0" id="day0">Day 1: The Light, Day; The Darkness, Night</option>
             <option value="1" id="day1">Day 2: The Heavens</option>
             <option value="2" id="day2">Day 3: The Earth and the Sea; Vegetation</option>
