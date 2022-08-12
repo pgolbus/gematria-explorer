@@ -15,11 +15,16 @@ ALEF: int = 1488
 # One word has 1 or more diacrtitics associated with it
 @dataclass
 class Diacritic:
-    strongs: int
+    strongs: str
     diacritic: str
 
     def __lt__(self, obj):
         return ((self.diacritic) < (obj.diacritic))
+
+@dataclass
+class Strongs:
+    diacritic: str
+    word: str
 
 @dataclass
 class WordNumbers:
@@ -90,7 +95,7 @@ def strip_vowels(word: str) -> str:
     output_word: List[str] = [char for char in word if ord(char) >= ALEF]
     return ''.join(output_word)
 
-def get_diacritics(vocab_input_file: str) -> Dict[int, str]:
+def get_diacritics(vocab_input_file: str) -> Dict[str, Strongs]:
     """Read the input file and spit out a list of words (w/ vowels) to their Strong's numbers
 
     Args:
@@ -101,10 +106,12 @@ def get_diacritics(vocab_input_file: str) -> Dict[int, str]:
     """
     with open(vocab_input_file, 'r') as fh:
         input_dict: Dict[str, Any] = json.load(fh)
-    diacritics: Dict[int, str] = {int(strongs[1:]): metadata['lemma'] for strongs, metadata in input_dict.items()}
+    diacritics: Dict[str, Strongs] = {strongs: Strongs(metadata['lemma'],
+                                                       strip_vowels(metadata['lemma']))
+                                      for strongs, metadata in input_dict.items()}
     return diacritics
 
-def make_words(diacritics: Dict[int, str], mod: int) -> Dict[str, Word]:
+def make_words(diacritics: Dict[str, Strongs], mod: int) -> Dict[str, Word]:
     """Turns the words (w/ vowels) to Strong's map and returns a map from words (w/out vowels) to Word objects
 
     Args:
@@ -116,16 +123,16 @@ def make_words(diacritics: Dict[int, str], mod: int) -> Dict[str, Word]:
     """
     words: Dict[str, Word] = {}
     for strongs, diacritic in diacritics.items():
-        word: str = strip_vowels(diacritic)
+        word: str = diacritic.word
         word_numbers: WordNumbers
         if word not in words:
             word_numbers = get_word_numbers(word, mod)
-            words[word] = Word(word, word_numbers, [Diacritic(strongs, diacritic)])
+            words[word] = Word(word, word_numbers, [Diacritic(strongs, diacritic.diacritic)])
         else:
             old_word: Word = words[word]
             word_numbers = old_word.word_numbers
             diacritics_list: List[Diacritic] = old_word.diacritics
-            diacritics_list.append(Diacritic(strongs, diacritic))
+            diacritics_list.append(Diacritic(strongs, diacritic.diacritic))
             new_word: Word = Word(word, word_numbers, diacritics_list)
             words[word] = new_word
     for word in words:
@@ -161,7 +168,7 @@ def main(mod: int, vocab_input_file: str, output_path: str) -> None:
         3) Persist them
 
     Maps:
-        strongs -> diacritic
+        strongs -> [diacritic, word str]
         word str -> Word object
         face: letter -> day number -> [Word]
         hidden: letter -> day number -> [Word]
@@ -176,7 +183,7 @@ def main(mod: int, vocab_input_file: str, output_path: str) -> None:
     """
     # get the "diacritics" and "words" from the strong's dictionary
     # We'll go from diacritic str -> word str dynamically on the javascript side
-    diacritics: Dict[int, str] = get_diacritics(vocab_input_file)
+    diacritics: Dict[str, Strongs] = get_diacritics(vocab_input_file)
     words: Dict[str, Word] = make_words(diacritics, mod)
 
     face: Dict[str, Dict[int, List[Word]]] = {}
