@@ -12,14 +12,19 @@
     padding-right: .25em;
 }
 
+.bold {
+    font-size: 30px;
+}
+
 #container {
     display: grid;
     grid-template-columns: 85% 15%;
-    grid-template-rows: 5em, 5em, 1em, 1em, 2em, 40em;
+    grid-template-rows: 5em, 5em, 1em, 1em, 1em, 2em, 40em;
     grid-auto-flow: row;
     grid-template-areas:
         "title title"
         "intro intro"
+        "mispar mispar"
         "search search"
         "select select"
         "alefbet alefbet"
@@ -34,6 +39,12 @@
 
 #intro {
     grid-area: intro;
+}
+
+#mispar {
+    grid-area: mispar;
+    text-align: right;
+    padding: 0 0.5em 0.5em 0;
 }
 
 #search {

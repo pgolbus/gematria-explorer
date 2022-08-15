@@ -1,24 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="utf-8">
 <title>Words by Day of Creation</title>
 <link rel="stylesheet" href="index.css" />
 <script type="module">
     import {
         initialize,
+        changeMispar,
         clearSearch,
         populateDay,
         search,
         searchBox
     } from "./src/getDefinitions.js";
     window.initialize = initialize;
+    window.changeMispar = changeMispar;
     window.clearSearch = clearSearch;
     window.populateDay = populateDay;
     window.search = search;
     window.searchBox = searchBox;
 </script>
 </head>
-<body onload="initialize(window.location.href)">
+<body onload="initialize()">
 
 <div id="container">
 
@@ -39,20 +42,25 @@
         <p>
             Let n = 7, the number of days in the week. Then the equivalence classes of Hebrew / nHebrew correspond to the Days of Creation plus Shabbat. Using the tool below, you can explore the words in each day, including [[Shabbat]].
         </p>
-        <p>The below entries from Strong's Concordance come from <a href="https://rapidapi.com/vibrantmiami/api/iq-bible/">IQ Bible</a> by Jody Pike M&#xE9;ndez. I only get 500 lookups / day. Please be gentle.</p>
+        <p>A mispar (heb. מספר, in this context "cypher") is a method of encoding letters as numbers. See the <a href="https://en.wikipedia.org/wiki/Gematria#Methods">wikipedia page</a> for an explanation of the methods we use here.
+    </div>
+
+    <div id="mispar">
+        Mispar&nbsp;
+        <select name="mispar", id="misparSelect", onchange="changeMispar();">
+            <option value="hechrechi">Hechrechi</option>
+            <option value="gadol">Gadol</option>
+            <option value="haakhor">haAkhor</option>
+        </select>
     </div>
 
     <div id="search">
-        Hidden
-        <input type="checkbox", id="hiddenSearch"/>
         <input type="button" id="searchButton" value="Search" onclick="searchBox()" />
         <input type="text" id="searchTerm" />
     </div>
 
     <div id="select">
-        Hidden
-        <input type="checkbox", id="hiddenSelect" onchange="populateDay(); clearSearch();"/>
-        <select name="days", id="days" onchange="populateDay();">
+        <select name="days", id="days" onchange="populateDay(); clearSearch()">
             <option value="0" id="day0">Day 1: The Light, Day; The Darkness, Night</option>
             <option value="1" id="day1">Day 2: The Heavens</option>
             <option value="2" id="day2">Day 3: The Earth and the Sea; Vegetation</option>
@@ -68,7 +76,7 @@
     </div>
 
     <div id="definitions">
-        I take a second to load
+        <span class="bold">I take a second to load</span>
     </div>
     <div id="day"></div>
 

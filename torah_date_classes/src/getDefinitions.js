@@ -1,16 +1,18 @@
 import { env } from "../env.js";
-import { face } from "../data/face.js";
-import { hidden } from "../data/hidden.js";
-import { words } from "../data/words.js";
 import { diacritics } from "../data/diacritics.js";
+import { haakhor } from "../data/haakhor.js";
+import { hechrechi } from "../data/hechrechi.js";
+import { gadol } from "../data/gadol.js";
+import { strongs } from "../data/strongs.js";
+import { words } from "../data/words.js";
 
 
 const SOFITS = ["ך", "ם", "ן", "ף", "ץ"];
 const ALEF = "א".charCodeAt(0); // which happens to be 1488
-let LOOKUP = true;
 
 // We are keeping track of the current letter at the module level. Meh.
 let currentLetter = "א";
+let activeSearch = false;
 
 
 /**
@@ -19,7 +21,7 @@ let currentLetter = "א";
  * @returns {string} the word with the vowels removed
  */
 function stripVowels(diacritic) {
-    return diacritic.split('').filter(char => char.charCodeAt(0) >= ALEF).join('');
+    return diacritic.split('').filter(char => (char.charCodeAt(0) >= ALEF || char === " ")).join('');
 };
 
 /**
@@ -46,19 +48,21 @@ export function populateDay(letter) {
     currentLetter = localLetter;
     const dayDiv = document.getElementById("day");
     const day = document.getElementById("days").value;
-    let words = {}
-    try {
-        if (document.getElementById("hiddenSelect").checked == true) {
-            words = hidden[currentLetter][day].map(word => word.word);
+    let words = {};
+    //try {
+        if (document.getElementById("misparSelect").value === "hechrechi") {
+            words = hechrechi[currentLetter][day].map(word => word.word);
+        } else if (document.getElementById("misparSelect").value === "gadol") {
+            words = gadol[currentLetter][day].map(word => word.word);
         } else {
-            words = face[currentLetter][day].map(word => word.word);
+            words = haakhor[currentLetter][day].map(word => word.word);
         }
         search(words[0], true);
         const wrappedWords = words.map(word => wrapWord(word));
         dayDiv.innerHTML = wrappedWords.join("<br />");
-    } catch {
+    /*} catch {
         dayDiv.innerHTML = "";
-    };
+    };*/
 };
 
 /**
@@ -66,48 +70,16 @@ export function populateDay(letter) {
  *
  * @params{glossary} (string) The glossary from Strongs
  */
-function replaceStrongs(glossary) {
-    let output = glossary;
-    const strongsRegex = /(H\d+)/g;
-    const strongsArray = glossary.match(strongsRegex);
+function replaceStrongs(derivation) {
+    let output = derivation;
+    const strongsRegex = /(H\d+) (\(.*?\))/g;
+    const strongsArray = Array.from(derivation.matchAll(strongsRegex));
     if (strongsArray !== null) {
-        strongsArray.shift();
         strongsArray.forEach(strongs => {
-            const strongsNumber = strongs.replace("H", "");
-            output = output.replaceAll(strongs, wrapWord(diacritics[strongsNumber]["diacritic"], false));
+            output = output.replaceAll(strongs[0], wrapWord(diacritics[strongs[1]]["diacritic"], false));
         });
     };
     return output;
-};
-
-async function searchHelper(diacritic, defDiv) {
-    if (LOOKUP === true) {
-        const url = `https://iq-bible.p.rapidapi.com/GetStrongs?lexiconId=H&id=${diacritic["strongs"]}`;
-        const method = "GET";
-        const headers = {
-            'X-RapidAPI-Key': `${env["X-RapidAPI-Key"]}`,
-            'X-RapidAPI-Host': `${env["X-RapidAPI-Host"]}`
-        };
-        const response = await fetch(url, {
-            method: method,
-            headers: headers
-        });
-
-
-        response.json().then(result => {
-            const output = new Array();
-            result.forEach(entry => {
-                output.push(`<p><span style="font-size: 30px;">${diacritic["diacritic"]}:</span> ${replaceStrongs(entry.glossary)}<br /><strong>Occurences:</strong>${entry.occurences}</p>`);
-            })
-            defDiv.innerHTML += output.join("");
-        })
-        .catch(error => {
-
-            console.log(error);
-            return "<strong>Something went wrong.</strong>"
-
-        })
-    };
 };
 
 /**
@@ -120,72 +92,72 @@ async function searchHelper(diacritic, defDiv) {
  * @params{searchWord} (Word) The word object we are searching for
  * @params{fromClick} (bool) Indicates whether the term came from clicking rather than searching
  */
-export async function search(searchWord, fromClick = false) {
+export function search(searchWord, fromClick = false) {
     if(fromClick === true) {
         const searchText = document.getElementById("searchTerm");
         searchText.value = "";
-        const searchBox = document.getElementById("hiddenSearch");
-        searchBox.checked = false;
+        activeSearch = false;
     };
 
     const searchTerm = stripVowels(searchWord);
     const defDiv = document.getElementById("definitions");
-    const dayText = document.getElementById(`day${words[searchTerm]["word_numbers"]["face_mod"]}`).innerText;
-    const hiddenDayText = document.getElementById(`day${words[searchTerm]["word_numbers"]["hidden_mod"]}`).innerText;
+    const hechrechiText = document.getElementById(`day${words[searchTerm]["hechrechi"]["mod"]}`).innerText;
+    const gadolText = document.getElementById(`day${words[searchTerm]["gadol"]["mod"]}`).innerText;
+    const haakhorText = document.getElementById(`day${words[searchTerm]["haakhor"]["mod"]}`).innerText;
     const line = [];
     line.push(`<span style="font-size: 30px">${searchTerm}</span>`);
-    line.push(`Numeric Value: ${words[searchTerm]["word_numbers"]["face_value"].toLocaleString("en-US")}`);
-    line.push(`<span style="padding-left: 1em;">${dayText}</span>`);
-    line.push(`Hidden Value: ${words[searchTerm]["word_numbers"]["hidden_value"].toLocaleString("en-US")}`);
-    line.push(`<span style="padding-left: 1em;">${hiddenDayText}</span>`);
-
-    defDiv.innerHTML = line.join("<br />") + "<br /><br />";
+    line.push(`Hechrechi: ${words[searchTerm]["hechrechi"]["value"].toLocaleString("en-US")}<br />&emsp;${hechrechiText}`);
+    line.push(`Gadol: ${words[searchTerm]["gadol"]["value"].toLocaleString("en-US")}<br />&emsp;${gadolText}`);
+    line.push(`haAkhor: ${words[searchTerm]["haakhor"]["value"].toLocaleString("en-US")}<br />&emsp;${haakhorText}`);
 
     const results = []
     words[searchTerm]["diacritics"].forEach(diacritic => {
-        searchHelper(diacritic, defDiv)
+        const strongs_number = diacritic["strongs"];
+        const strongs_entry = strongs[strongs_number];
+        const entry_output = ["<p>"];
+        entry_output.push(`<span class="bold">${strongs_entry["lemma"]}</span>: ${strongs_entry["xlit"]}`);
+        entry_output.push(`${replaceStrongs(strongs_entry["derivation"])}`);
+        entry_output.push(`Strong's definition: ${strongs_number} ${strongs_entry["strongs_def"]}`);
+        entry_output.push(`King James: ${strongs_entry["kjv_def"]}`);
+        results.push(`<p>${entry_output.join("<br />")}</p>`)
     });
+    defDiv.innerHTML = line.join("<br />") + results.join("");
+
 };
 
-export async function searchBox() {
+export function searchBox() {
+    activeSearch = true;
     const searchTerm = stripVowels(document.getElementById("searchTerm").value);
-    populateDayFromSearch(searchTerm);
-    await search(searchTerm);
+    //try {
+        populateDayFromSearch(searchTerm);
+        search(searchTerm);
+    /*} catch {
+        window.alert("That word is not in my Strong's dictionary");
+    };*/
 };
 
 function populateDayFromSearch(searchTerm) {
     const dayDiv = document.getElementById("day");
     const daySelect = document.getElementById("days");
-    const dayHidden = document.getElementById("hiddenSelect");
+    const mispar = document.getElementById("misparSelect").value;
+    const day = words[searchTerm][mispar]["mod"];
     let dayWords = [];
-    let day = 0
-    currentLetter = searchTerm.at(0);
-    if (document.getElementById("hiddenSearch").checked == true) {
-        day = words[searchTerm]["word_numbers"]["hidden_mod"];
-        dayWords = hidden[currentLetter][day].map(word => wrapWord(word.word));
-        dayHidden.checked = true;
-    }
-    else {
-        day = words[searchTerm]["word_numbers"]["face_mod"];
-        dayWords = face[currentLetter][day].map(word => wrapWord(word.word));
-        dayHidden.checked = false;
-    }
+    if(mispar === "hechrechi") {
+        dayWords = hechrechi[currentLetter][day].map(word => wrapWord(word.word));
+    } else if(mispar === "gadol") {
+        dayWords = gadol[currentLetter][day].map(word => wrapWord(word.word));
+    } else {
+        dayWords = haakhor[currentLetter][day].map(word => wrapWord(word.word));
+    };
     dayDiv.innerHTML = dayWords.join("<br />");
     daySelect.value = day;
 };
 
 function wrapLetter(letter) {
-    if(SOFITS.includes(letter)) {
-        return "";
-    }
-    return `<span class="letter hebrew" onclick="populateDay('${letter}');">${letter}</span>`;
+    return `<span class="letter bold" onclick="populateDay('${letter}');">${letter}</span>`;
 };
 
-export async function initialize(url) {
-    const lookup = new URL(url).searchParams.get("lookup");
-    if(lookup !== null) {
-        LOOKUP = lookup;
-    };
+export function initialize() {
     populateDay(currentLetter);
     const searchTerm = document.getElementById("searchTerm");
     searchTerm.addEventListener("keyup", e => {
@@ -195,11 +167,22 @@ export async function initialize(url) {
     });
     const alefbetDiv = document.getElementById("alefbet");
     const alefbet = [];
-    for (let i = parseInt("0x05D0", 0); i <= parseInt("0x05EA", 0); i++) {
-        alefbet.push(String.fromCharCode(i));
+    for (let i = 'א'.charCodeAt(0); i <= 'ת'.charCodeAt(0); i++) {
+        const letter = String.fromCharCode(i);
+        if(!SOFITS.includes(letter)) {
+           alefbet.push(wrapLetter(letter));
+        }
     }
-    const wrappedAlefbet = alefbet.map(wrapLetter);
-    alefbetDiv.innerHTML = wrappedAlefbet.join(" ");
+    alefbetDiv.innerHTML = alefbet.join(" ");
+};
+
+export function changeMispar() {
+    if(activeSearch) {
+        const searchTerm = document.getElementById("searchTerm").value;
+        populateDayFromSearch(searchTerm);
+    } else {
+        populateDay();
+    };
 };
 
 export function clearSearch() {
