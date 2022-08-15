@@ -1,16 +1,18 @@
 import { env } from "../env.js";
-import { face } from "../data/face.js";
-import { hidden } from "../data/hidden.js";
-import { words } from "../data/words.js";
 import { diacritics } from "../data/diacritics.js";
+import { haakhor } from "../data/haakhor.js";
+import { hechrechi } from "../data/hechrechi.js";
+import { gadol } from "../data/gadol.js";
+import { strongs } from "../data/strongs.js";
+import { words } from "../data/words.js";
 
 
 const SOFITS = ["ך", "ם", "ן", "ף", "ץ"];
 const ALEF = "א".charCodeAt(0); // which happens to be 1488
-let LOOKUP = true;
 
 // We are keeping track of the current letter at the module level. Meh.
 let currentLetter = "א";
+let activeSearch = false;
 
 
 /**
@@ -48,10 +50,12 @@ export function populateDay(letter) {
     const day = document.getElementById("days").value;
     let words = {}
     try {
-        if (document.getElementById("hiddenSelect").checked == true) {
-            words = hidden[currentLetter][day].map(word => word.word);
+        if (document.getElementById("misparSelect").value === "hechrechi") {
+            words = hechrechi[currentLetter][day].map(word => word.word);
+        } else if (document.getElementById("misparSelect").value === "gadol") {
+            words = gadol[currentLetter][day].map(word => word.word);
         } else {
-            words = face[currentLetter][day].map(word => word.word);
+            words = haakhor[currentLetter][day].map(word => word.word);
         }
         search(words[0], true);
         const wrappedWords = words.map(word => wrapWord(word));
@@ -73,8 +77,7 @@ function replaceStrongs(glossary) {
     if (strongsArray !== null) {
         strongsArray.shift();
         strongsArray.forEach(strongs => {
-            const strongsNumber = strongs.replace("H", "");
-            output = output.replaceAll(strongs, wrapWord(diacritics[strongsNumber]["diacritic"], false));
+            output = output.replaceAll(strongs, wrapWord(diacritics[strongs]["diacritic"], false));
         });
     };
     return output;
@@ -120,12 +123,13 @@ async function searchHelper(diacritic, defDiv) {
  * @params{searchWord} (Word) The word object we are searching for
  * @params{fromClick} (bool) Indicates whether the term came from clicking rather than searching
  */
-export async function search(searchWord, fromClick = false) {
+export function search(searchWord, fromClick = false) {
     if(fromClick === true) {
         const searchText = document.getElementById("searchTerm");
         searchText.value = "";
-        const searchBox = document.getElementById("hiddenSearch");
-        searchBox.checked = false;
+        activeSearch = false;
+    } else {
+        activeSearch = true;
     };
 
     const searchTerm = stripVowels(searchWord);
@@ -175,17 +179,10 @@ function populateDayFromSearch(searchTerm) {
 };
 
 function wrapLetter(letter) {
-    if(SOFITS.includes(letter)) {
-        return "";
-    }
-    return `<span class="letter hebrew" onclick="populateDay('${letter}');">${letter}</span>`;
+    return `<span class="letter bold" onclick="populateDay('${letter}');">${letter}</span>`;
 };
 
-export async function initialize(url) {
-    const lookup = new URL(url).searchParams.get("lookup");
-    if(lookup !== null) {
-        LOOKUP = lookup;
-    };
+export async function initialize() {
     populateDay(currentLetter);
     const searchTerm = document.getElementById("searchTerm");
     searchTerm.addEventListener("keyup", e => {
@@ -195,12 +192,20 @@ export async function initialize(url) {
     });
     const alefbetDiv = document.getElementById("alefbet");
     const alefbet = [];
-    for (let i = parseInt("0x05D0", 0); i <= parseInt("0x05EA", 0); i++) {
-        alefbet.push(String.fromCharCode(i));
+    for (let i = 'א'.charCodeAt(0); i <= 'ת'.charCodeAt(0); i++) {
+        const letter = String.fromCharCode(i);
+        if(!SOFITS.includes(letter)) {
+           alefbet.push(wrapLetter(letter));
+        }
     }
-    const wrappedAlefbet = alefbet.map(wrapLetter);
-    alefbetDiv.innerHTML = wrappedAlefbet.join(" ");
+    alefbetDiv.innerHTML = alefbet.join(" ");
 };
+
+function noop() {};
+
+export function changeMispar() {
+    noop();
+}
 
 export function clearSearch() {
     const searchBoxDiv = document.getElementById("searchTerm");
