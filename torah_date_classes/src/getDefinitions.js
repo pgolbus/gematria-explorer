@@ -12,6 +12,9 @@ const ALEF = "א".charCodeAt(0); // which happens to be 1488
 
 // We are keeping track of the current letter at the module level. Meh.
 let currentLetter = "א";
+
+// If there is a search in progress, we don't want changing the mispar to blow it away
+// Do we need this? I'm not sure it ever gets cleared...
 let activeSearch = false;
 
 
@@ -87,8 +90,7 @@ function replaceStrongs(derivation) {
  *
  * Side-effects
  *   - Update definitions div
- *   - Update current letter
- *   - Update day div
+ *   - If from click, ends the active search
  * @params{searchWord} (Word) The word object we are searching for
  * @params{fromClick} (bool) Indicates whether the term came from clicking rather than searching
  */
@@ -125,17 +127,32 @@ export function search(searchWord, fromClick = false) {
 
 };
 
+/**
+ * Initiate a search from the search box
+ *
+ * To do a search from the search box, we need to update the day div and do the actual search
+ *
+ * Side-effects:
+ *  - Starts an active search
+ */
 export function searchBox() {
     activeSearch = true;
     const searchTerm = stripVowels(document.getElementById("searchTerm").value);
-    //try {
+    try {
         populateDayFromSearch(searchTerm);
         search(searchTerm);
-    /*} catch {
+    } catch {
         window.alert("That word is not in my Strong's dictionary");
-    };*/
+    };
 };
 
+/**
+ * Update the day div from a search
+ *
+ * Side-effects
+ *   - Update day div
+ * @params{searchTerm} (string) The hebrew string we are searching for (without vowels)
+  */
 function populateDayFromSearch(searchTerm) {
     const dayDiv = document.getElementById("day");
     const daySelect = document.getElementById("days");
@@ -153,10 +170,21 @@ function populateDayFromSearch(searchTerm) {
     daySelect.value = day;
 };
 
+/**
+ * Make a letter clickable
+ *
+ * @params{letter} (string) The letter to make clickable
+  */
 function wrapLetter(letter) {
     return `<span class="letter bold" onclick="populateDay('${letter}');">${letter}</span>`;
 };
 
+
+/**
+ * Populate the day and alefbet divs, add the enter key event listener
+ *
+ * @params{letter} (string) The letter to make clickable
+  */
 export function initialize() {
     populateDay(currentLetter);
     const searchTerm = document.getElementById("searchTerm");
@@ -176,6 +204,10 @@ export function initialize() {
     alefbetDiv.innerHTML = alefbet.join(" ");
 };
 
+/**
+ * Listen for changes to the mispar select and update the day div
+ *
+ */
 export function changeMispar() {
     if(activeSearch) {
         const searchTerm = document.getElementById("searchTerm").value;
@@ -185,6 +217,11 @@ export function changeMispar() {
     };
 };
 
+/**
+ * Clear the search box
+ *
+ * Should we be clearing the activeSearch here?
+ */
 export function clearSearch() {
     const searchBoxDiv = document.getElementById("searchTerm");
     searchBoxDiv.value = "";
